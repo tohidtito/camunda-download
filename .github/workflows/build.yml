@@ -1,42 +1,46 @@
 name: Build and Upload Camunda 8.7 Images
 
 on:
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Pull Camunda 8.7 images
+      - name: Pull and Save Docker Images (Camunda 8.7)
         run: |
+          echo "Pulling required images..."
+
+          # Core Camunda services
           docker pull camunda/zeebe:8.7.0
           docker pull camunda/operate:8.7.0
           docker pull camunda/tasklist:8.7.0
           docker pull camunda/identity:8.7.0
-          docker pull camunda/keycloak:8.7.0
+
+          # Database for Identity
           docker pull postgres:13
+
+          # OpenSearch (instead of Elasticsearch)
           docker pull opensearchproject/opensearch:2.6.0
           docker pull opensearchproject/opensearch-dashboards:2.6.0
 
+          echo "Saving all images to tar..."
           docker save \
             camunda/zeebe:8.7.0 \
             camunda/operate:8.7.0 \
             camunda/tasklist:8.7.0 \
             camunda/identity:8.7.0 \
-            camunda/keycloak:8.7.0 \
             postgres:13 \
             opensearchproject/opensearch:2.6.0 \
             opensearchproject/opensearch-dashboards:2.6.0 \
             -o camunda87-images.tar
 
-      - name: Upload to transfer.sh
-        id: upload
-        run: |
-          echo "Uploading..."
-          response=$(curl --progress-bar --upload-file camunda87-images.tar https://transfer.sh/camunda87-images.tar)
-          echo "Download URL: $response"
-          echo "url=$response" >> $GITHUB_OUTPUT
+          echo "Uploading to transfer.sh..."
+          URL=$(curl --retry 3 --max-time 600 --upload-file camunda87-images.tar https://transfer.sh/camunda87-images.tar)
+          echo "Download URL: $URL"
+          echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Print Download Link
+      - name: Display Download Link
         run: |
           echo "✅ لینک دانلود فایل:"
-          echo "${{ steps.upload.outputs.url }}"
+          echo "${{ steps.pull-and-save.outputs.url }}"
