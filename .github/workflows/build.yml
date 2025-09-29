@@ -1,4 +1,4 @@
-name: Build and Upload Camunda 8.7 Images
+name: Build and Upload Camunda 8.7 Images to Release
 
 on:
   workflow_dispatch:
@@ -6,25 +6,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # برای آپلود به ریلیز نیازه
     steps:
-      - name: Pull and Save Docker Images (Camunda 8.7)
+      - name: Pull and Save Docker Images
         run: |
-          echo "Pulling required images..."
-
-          # Core Camunda services
+          echo "Pulling images..."
           docker pull camunda/zeebe:8.7.0
           docker pull camunda/operate:8.7.0
           docker pull camunda/tasklist:8.7.0
           docker pull camunda/identity:8.7.0
-
-          # Database for Identity
           docker pull postgres:13
-
-          # OpenSearch (instead of Elasticsearch)
           docker pull opensearchproject/opensearch:2.6.0
           docker pull opensearchproject/opensearch-dashboards:2.6.0
 
-          echo "Saving all images to tar..."
+          echo "Saving to tar..."
           docker save \
             camunda/zeebe:8.7.0 \
             camunda/operate:8.7.0 \
@@ -35,12 +31,13 @@ jobs:
             opensearchproject/opensearch-dashboards:2.6.0 \
             -o camunda87-images.tar
 
-          echo "Uploading to transfer.sh..."
-          URL=$(curl --retry 3 --max-time 600 --upload-file camunda87-images.tar https://transfer.sh/camunda87-images.tar)
-          echo "Download URL: $URL"
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "File size:"
+          ls -lh camunda87-images.tar
 
-      - name: Display Download Link
-        run: |
-          echo "✅ لینک دانلود فایل:"
-          echo "${{ steps.pull-and-save.outputs.url }}"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: camunda87-images.tar
+          tag_name: v8.7.0-offline
+          name: Camunda 8.7 Offline Package
+          body: "Offline Docker images for Camunda 8.7 (Iran-friendly)"
