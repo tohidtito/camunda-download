@@ -1,4 +1,4 @@
-name: Build and Upload Camunda 8.7 Images to Release
+name: Build and Split Camunda 8.7 Images
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # برای آپلود به ریلیز نیازه
+      contents: write
     steps:
       - name: Pull and Save Docker Images
         run: |
@@ -31,13 +31,18 @@ jobs:
             opensearchproject/opensearch-dashboards:2.6.0 \
             -o camunda87-images.tar
 
-          echo "File size:"
-          ls -lh camunda87-images.tar
+          echo "Splitting into parts (2GB each)..."
+          split -b 2G camunda87-images.tar camunda87-images.tar.part-
 
-      - name: Create GitHub Release
+          ls -lh camunda87-images.tar.part-*
+
+      - name: Create Release and Upload Parts
         uses: softprops/action-gh-release@v1
         with:
-          files: camunda87-images.tar
-          tag_name: v8.7.0-offline
-          name: Camunda 8.7 Offline Package
-          body: "Offline Docker images for Camunda 8.7 (Iran-friendly)"
+          files: |
+            camunda87-images.tar.part-aa
+            camunda87-images.tar.part-ab
+            camunda87-images.tar.part-ac
+          tag_name: v8.7.0-split
+          name: Camunda 8.7 (Split Parts)
+          body: "Split into <2GB parts for Iran download"
