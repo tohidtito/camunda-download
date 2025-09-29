@@ -1,4 +1,4 @@
-name: Build and Split Camunda 8.7 Images
+name: Build and Upload to oshi.at
 
 on:
   workflow_dispatch:
@@ -6,12 +6,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Pull and Save Docker Images
         run: |
-          echo "Pulling images..."
+          echo "Pulling Camunda 8.7 images..."
           docker pull camunda/zeebe:8.7.0
           docker pull camunda/operate:8.7.0
           docker pull camunda/tasklist:8.7.0
@@ -31,18 +29,11 @@ jobs:
             opensearchproject/opensearch-dashboards:2.6.0 \
             -o camunda87-images.tar
 
-          echo "Splitting into parts (2GB each)..."
-          split -b 2G camunda87-images.tar camunda87-images.tar.part-
+          ls -lh camunda87-images.tar
 
-          ls -lh camunda87-images.tar.part-*
-
-      - name: Create Release and Upload Parts
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            camunda87-images.tar.part-aa
-            camunda87-images.tar.part-ab
-            camunda87-images.tar.part-ac
-          tag_name: v8.7.0-split
-          name: Camunda 8.7 (Split Parts)
-          body: "Split into <2GB parts for Iran download"
+      - name: Upload to oshi.at
+        run: |
+          echo "Uploading to oshi.at (this may take 10-20 minutes)..."
+          response=$(curl --progress-bar --upload-file camunda87-images.tar https://oshi.at)
+          echo "✅ لینک دانلود:"
+          echo "$response"
