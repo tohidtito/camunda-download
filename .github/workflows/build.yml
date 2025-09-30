@@ -18,7 +18,7 @@ jobs:
           docker pull opensearchproject/opensearch:2.6.0
           docker pull opensearchproject/opensearch-dashboards:2.6.0
 
-          echo "Saving to tar..."
+          echo "Saving all images to camunda87-images.tar..."
           docker save \
             camunda/zeebe:8.7.0 \
             camunda/operate:8.7.0 \
@@ -29,17 +29,30 @@ jobs:
             opensearchproject/opensearch-dashboards:2.6.0 \
             -o camunda87-images.tar
 
-      - name: Install SSH client
+          echo "File created:"
+          ls -lh camunda87-images.tar
+
+      - name: Install sshpass
         run: |
-          sudo apt update && sudo apt install -y sshpass
+          sudo apt update
+          sudo apt install -y sshpass
 
       - name: Upload to My Server
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
-          echo "Uploading camunda87-images.tar to server..."
-          sshpass -p "$SERVER_PASSWORD" scp camunda87-images.tar root@"$SERVER_IP":/root/
-          echo "✅ فایل با موفقیت به سرور آپلود شد!"
-          echo "روی سرورت این دستور رو بزن:"
-          echo "  cd ~ && docker load -i camunda87-images.tar"
+          echo "Uploading camunda87-images.tar to root@${SERVER_IP}:/root/ ..."
+          sshpass -p "$SERVER_PASSWORD" scp \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            camunda87-images.tar \
+            root@"$SERVER_IP":/root/
+          echo "✅ آپلود با موفقیت انجام شد!"
+          echo ""
+          echo "📌 دستورات بعدی روی سرورت:"
+          echo "   cd ~"
+          echo "   docker load -i camunda87-images.tar"
+          echo "   curl -LO https://raw.githubusercontent.com/camunda/camunda-platform/8.7/docker-compose/docker-compose.yaml"
+          echo "   sudo sysctl -w vm.max_map_count=262144"
+          echo "   docker compose up -d"
