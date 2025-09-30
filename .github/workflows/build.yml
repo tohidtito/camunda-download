@@ -1,4 +1,4 @@
-name: Build and Upload to oshi.at
+name: Build and Upload Directly to My Server
 
 on:
   workflow_dispatch:
@@ -29,11 +29,17 @@ jobs:
             opensearchproject/opensearch-dashboards:2.6.0 \
             -o camunda87-images.tar
 
-          ls -lh camunda87-images.tar
-
-      - name: Upload to oshi.at
+      - name: Install SSH client
         run: |
-          echo "Uploading to oshi.at (this may take 10-20 minutes)..."
-          response=$(curl --progress-bar --upload-file camunda87-images.tar https://oshi.at)
-          echo "✅ لینک دانلود:"
-          echo "$response"
+          sudo apt update && sudo apt install -y sshpass
+
+      - name: Upload to My Server
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          echo "Uploading camunda87-images.tar to server..."
+          sshpass -p "$SERVER_PASSWORD" scp camunda87-images.tar root@"$SERVER_IP":/root/
+          echo "✅ فایل با موفقیت به سرور آپلود شد!"
+          echo "روی سرورت این دستور رو بزن:"
+          echo "  cd ~ && docker load -i camunda87-images.tar"
